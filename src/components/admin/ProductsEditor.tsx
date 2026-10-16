@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Plus, Trash2, Save, Upload, Star, FileText, Video, Eye, EyeOff, Edit3, X } from 'lucide-react';
-import { useTeachingProducts, useTeachingVideos } from '@/hooks/useData';
-import { supabase, STORAGE_BUCKETS, uploadFile, deleteFile, type TeachingProduct, type TeachingVideo } from '@/lib/supabase';
+import { Plus, Trash2, Save, Upload, Star, FileText, Video, Users, Eye, EyeOff, Edit3, X } from 'lucide-react';
+import { useTeachingProducts, useTeachingVideos, useStudentWorks } from '@/hooks/useData';
+import { supabase, STORAGE_BUCKETS, uploadFile, deleteFile, type TeachingProduct, type TeachingVideo, type StudentWork } from '@/lib/supabase';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import Toast from '@/components/Toast';
 
@@ -10,9 +10,10 @@ const cycles = [1, 2, 3, 4];
 export default function ProductsEditor() {
   const { products, refetch: refetchProducts } = useTeachingProducts();
   const { videos, refetch: refetchVideos } = useTeachingVideos();
-  const [activeTab, setActiveTab] = useState<'products' | 'videos'>('products');
+  const { works, refetch: refetchWorks } = useStudentWorks();
+  const [activeTab, setActiveTab] = useState<'products' | 'videos' | 'works'>('products');
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
-  const [confirmDelete, setConfirmDelete] = useState<{ type: 'product' | 'video'; id: string } | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{ type: 'product' | 'video' | 'work'; id: string } | null>(null);
 
   const handleDeleteProduct = async (id: string) => {
     const product = products.find((p) => p.id === id);
@@ -32,11 +33,21 @@ export default function ProductsEditor() {
     refetchVideos();
   };
 
+  const handleDeleteWork = async (id: string) => {
+    const work = works.find((w) => w.id === id);
+    if (work?.file_path) await deleteFile(STORAGE_BUCKETS.TEACHING_PDFS, work.file_path);
+    const { error } = await supabase.from('student_works').delete().eq('id', id);
+    if (error) setToast({ msg: `Gagal menghapus: ${error.message}`, type: 'error' });
+    else setToast({ msg: 'Hasil pekerjaan berhasil dihapus.', type: 'success' });
+    setConfirmDelete(null);
+    refetchWorks();
+  };
+
   return (
     <div className="space-y-6">
       {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
 
-      <div className="flex gap-2 p-1 bg-gray-100 rounded-lg w-fit">
+      <div className="flex gap-2 p-1 bg-gray-100 rounded-lg w-fit flex-wrap">
         <button
           onClick={() => setActiveTab('products')}
           className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded transition-all ${
@@ -44,7 +55,7 @@ export default function ProductsEditor() {
           }`}
         >
           <FileText className="w-4 h-4" />
-          Rancangan Pembelajaran
+          Rancangan
         </button>
         <button
           onClick={() => setActiveTab('videos')}
@@ -53,7 +64,16 @@ export default function ProductsEditor() {
           }`}
         >
           <Video className="w-4 h-4" />
-          Video Praktik Mengajar
+          Video
+        </button>
+        <button
+          onClick={() => setActiveTab('works')}
+          className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded transition-all ${
+            activeTab === 'works' ? 'bg-white text-accent shadow-sm' : 'text-gray-500'
+          }`}
+        >
+          <Users className="w-4 h-4" />
+          Hasil Peserta Didik
         </button>
       </div>
 
@@ -77,6 +97,16 @@ export default function ProductsEditor() {
         />
       )}
 
+      {activeTab === 'works' && (
+        <WorksTab
+          works={works}
+          cycles={cycles}
+          onRefetch={refetchWorks}
+          onToast={setToast}
+          onDelete={(id) => setConfirmDelete({ type: 'work', id })}
+        />
+      )}
+
       <ConfirmDialog
         open={!!confirmDelete}
         title="Hapus Item"
@@ -84,6 +114,7 @@ export default function ProductsEditor() {
         onConfirm={() => {
           if (confirmDelete?.type === 'product') handleDeleteProduct(confirmDelete.id);
           else if (confirmDelete?.type === 'video') handleDeleteVideo(confirmDelete.id);
+          else if (confirmDelete?.type === 'work') handleDeleteWork(confirmDelete.id);
         }}
         onCancel={() => setConfirmDelete(null)}
       />
@@ -432,6 +463,177 @@ function VideoForm({
         <label className="flex items-center gap-2 text-sm text-gray-700">
           <input type="checkbox" checked={form.is_published} onChange={(e) => setForm({ ...form, is_published: e.target.checked })} className="w-4 h-4 accent-blue-600" />
           {form.is_published ? <Eye className="w-4 h-4 text-green-600" /> : <EyeOff className="w-4 h-4 text-gray-400" />} Publikasikan
+        </label>
+      </div>
+
+      <div className="flex gap-3 pt-2">
+        <button onClick={handleSave} disabled={saving} className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-accent hover:bg-blue-700 rounded transition-colors disabled:opacity-50">
+          <Save className="w-4 h-4" /> {saving ? 'Menyimpan...' : 'Simpan'}
+        </button>
+        <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded transition-colors">Batal</button>
+      </div>
+    </div>
+  );
+}
+
+function WorksTab({
+  works,
+  cycles,
+  onRefetch,
+  onToast,
+  onDelete,
+}: {
+  works: StudentWork[];
+  cycles: number[];
+  onRefetch: () => void;
+  onToast: (t: { msg: string; type: 'success' | 'error' }) => void;
+  onDelete: (id: string) => void;
+}) {
+  const [editing, setEditing] = useState<StudentWork | null>(null);
+  const [showForm, setShowForm] = useState(false);
+
+  if (showForm) {
+    return (
+      <WorkForm
+        work={editing}
+        cycles={cycles}
+        onClose={() => { setShowForm(false); setEditing(null); }}
+        onSaved={() => { setShowForm(false); setEditing(null); onRefetch(); }}
+        onToast={onToast}
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <button
+        onClick={() => { setEditing(null); setShowForm(true); }}
+        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-accent hover:bg-blue-700 rounded transition-colors"
+      >
+        <Plus className="w-4 h-4" />
+        Tambah Hasil Pekerjaan
+      </button>
+
+      {works.length === 0 ? (
+        <p className="text-sm text-gray-400 py-8 text-center">Belum ada hasil pekerjaan peserta didik.</p>
+      ) : (
+        <div className="space-y-3">
+          {works.map((w) => (
+            <div key={w.id} className="bg-white rounded-lg border border-gray-200 p-4 flex items-start justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs bg-blue-50 text-accent px-2 py-0.5 rounded-full">Siklus {w.cycle}</span>
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${w.is_published ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                    {w.is_published ? 'Dipublikasikan' : 'Draf'}
+                  </span>
+                </div>
+                <h4 className="font-medium text-gray-900 truncate">{w.title || 'Tanpa judul'}</h4>
+                <p className="text-sm text-gray-500 truncate">{w.description || 'Tanpa deskripsi'}</p>
+                {w.file_name && <p className="text-xs text-gray-400 mt-1 truncate">{w.file_name}</p>}
+              </div>
+              <div className="flex gap-2 shrink-0">
+                <button onClick={() => { setEditing(w); setShowForm(true); }} className="p-2 text-gray-500 hover:text-accent hover:bg-gray-100 rounded transition-colors"><Edit3 className="w-4 h-4" /></button>
+                <button onClick={() => onDelete(w.id)} className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"><Trash2 className="w-4 h-4" /></button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function WorkForm({
+  work,
+  cycles,
+  onClose,
+  onSaved,
+  onToast,
+}: {
+  work: StudentWork | null;
+  cycles: number[];
+  onClose: () => void;
+  onSaved: () => void;
+  onToast: (t: { msg: string; type: 'success' | 'error' }) => void;
+}) {
+  const [form, setForm] = useState({
+    cycle: work?.cycle || 1,
+    title: work?.title || '',
+    description: work?.description || '',
+    file_path: work?.file_path || '',
+    file_name: work?.file_name || '',
+    is_published: work?.is_published || false,
+  });
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    const { path, error } = await uploadFile(STORAGE_BUCKETS.TEACHING_PDFS, file, `work-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`);
+    if (error) {
+      onToast({ msg: `Gagal mengunggah: ${error}`, type: 'error' });
+    } else {
+      if (form.file_path) await deleteFile(STORAGE_BUCKETS.TEACHING_PDFS, form.file_path);
+      setForm({ ...form, file_path: path, file_name: file.name });
+      onToast({ msg: 'PDF berhasil diunggah. Klik Simpan untuk menyimpan.', type: 'success' });
+    }
+    setUploading(false);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    if (work) {
+      const { error } = await supabase.from('student_works').update(form).eq('id', work.id);
+      if (error) onToast({ msg: `Gagal: ${error.message}`, type: 'error' });
+      else { onToast({ msg: 'Hasil pekerjaan berhasil disimpan.', type: 'success' }); onSaved(); }
+    } else {
+      const { error } = await supabase.from('student_works').insert(form);
+      if (error) onToast({ msg: `Gagal: ${error.message}`, type: 'error' });
+      else { onToast({ msg: 'Hasil pekerjaan berhasil ditambahkan.', type: 'success' }); onSaved(); }
+    }
+    setSaving(false);
+  };
+
+  return (
+    <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="font-bold text-gray-900">{work ? 'Edit Hasil Pekerjaan' : 'Tambah Hasil Pekerjaan'}</h3>
+        <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+      </div>
+
+      <div className="grid sm:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Siklus</label>
+          <select
+            value={form.cycle}
+            onChange={(e) => setForm({ ...form, cycle: parseInt(e.target.value) })}
+            className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-accent"
+          >
+            {cycles.map((c) => <option key={c} value={c}>Siklus {c}</option>)}
+          </select>
+        </div>
+      </div>
+
+      <Input label="Judul" value={form.title} onChange={(v) => setForm({ ...form, title: v })} />
+      <TextArea label="Deskripsi Singkat" value={form.description} onChange={(v) => setForm({ ...form, description: v })} />
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">File PDF</label>
+        {form.file_name && <p className="text-sm text-gray-600 mb-2">{form.file_name}</p>}
+        <label className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-accent hover:bg-blue-700 rounded transition-colors cursor-pointer">
+          <Upload className="w-4 h-4" />
+          {uploading ? 'Mengunggah...' : 'Unggah PDF'}
+          <input type="file" accept="application/pdf" onChange={handleUpload} className="hidden" />
+        </label>
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <label className="flex items-center gap-2 text-sm text-gray-700">
+          <input type="checkbox" checked={form.is_published} onChange={(e) => setForm({ ...form, is_published: e.target.checked })} className="w-4 h-4 accent-blue-600" />
+          {form.is_published ? <Eye className="w-4 h-4 text-green-600" /> : <EyeOff className="w-4 h-4 text-gray-400" />}
+          Publikasikan (tampilkan kepada pengunjung)
         </label>
       </div>
 

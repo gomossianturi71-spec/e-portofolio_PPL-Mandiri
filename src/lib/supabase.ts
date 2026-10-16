@@ -90,6 +90,19 @@ export type Documentation = {
   updated_at: string;
 };
 
+export type StudentWork = {
+  id: string;
+  cycle: number;
+  title: string;
+  description: string;
+  file_path: string;
+  file_name: string;
+  is_published: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+};
+
 export type Appendix = {
   id: string;
   cycle: number;

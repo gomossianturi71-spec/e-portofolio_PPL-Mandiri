@@ -8,9 +8,10 @@ import {
   Star,
   BookOpen,
   ExternalLink,
+  Users,
 } from 'lucide-react';
 import { useState } from 'react';
-import { useTeachingProducts, useTeachingVideos } from '@/hooks/useData';
+import { useTeachingProducts, useTeachingVideos, useStudentWorks } from '@/hooks/useData';
 import { supabase, STORAGE_BUCKETS } from '@/lib/supabase';
 import VideoEmbed from '@/components/VideoEmbed';
 import EmptyState from '@/components/EmptyState';
@@ -24,11 +25,13 @@ export default function SiklusDetail() {
 
   const { products, loading: loadingProducts } = useTeachingProducts(validCycle);
   const { videos, loading: loadingVideos } = useTeachingVideos(validCycle);
+  const { works, loading: loadingWorks } = useStudentWorks(validCycle);
   const [readingPdf, setReadingPdf] = useState<string | null>(null);
   const [pdfName, setPdfName] = useState<string>('');
 
   const cycleProducts = products.filter((p) => p.cycle === validCycle);
   const cycleVideos = videos.filter((v) => v.cycle === validCycle);
+  const cycleWorks = works.filter((w) => w.cycle === validCycle);
 
   if (readingPdf) {
     return (
@@ -178,6 +181,74 @@ export default function SiklusDetail() {
                 <VideoEmbed url={video.video_url} title={video.title} />
               </div>
             ))}
+          </div>
+        )}
+      </section>
+
+      {/* C. Hasil Pekerjaan Peserta Didik */}
+      <section className="mb-12">
+        <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <Users className="w-5 h-5 text-accent" />
+          Hasil Pekerjaan Peserta Didik
+        </h2>
+
+        {loadingWorks ? (
+          <div className="text-center py-8 text-gray-400">Memuat...</div>
+        ) : cycleWorks.length === 0 ? (
+          <EmptyState
+            title="Belum Ada Hasil Pekerjaan Peserta Didik"
+            message="Hasil pekerjaan peserta didik untuk siklus ini belum diunggah. Pemilik dapat menambahkannya melalui halaman Kelola."
+          />
+        ) : (
+          <div className="space-y-4">
+            {cycleWorks.map((work) => {
+              const fileUrl = work.file_path
+                ? supabase.storage.from(STORAGE_BUCKETS.TEACHING_PDFS).getPublicUrl(work.file_path).data.publicUrl
+                : null;
+
+              return (
+                <div
+                  key={work.id}
+                  className="bg-white rounded-lg border border-gray-200 p-5 hover:border-gray-300 transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-4 flex-wrap">
+                    <div className="flex-1 min-w-[200px]">
+                      <h3 className="font-semibold text-gray-900 mb-2">{work.title || 'Tanpa Judul'}</h3>
+                      {work.description && (
+                        <p className="text-sm text-gray-600">{work.description}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {fileUrl && (
+                    <div className="mt-4 flex gap-3">
+                      <button
+                        onClick={() => {
+                          setPdfName(work.file_name || work.title || 'Dokumen PDF');
+                          setReadingPdf(fileUrl);
+                        }}
+                        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-accent hover:bg-blue-700 rounded transition-colors"
+                      >
+                        <BookOpen className="w-4 h-4" />
+                        Baca Dokumen
+                      </button>
+                      <a
+                        href={fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-accent border border-gray-300 hover:bg-gray-50 rounded transition-colors"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                        Buka di Tab Baru
+                      </a>
+                    </div>
+                  )}
+                  {!fileUrl && (
+                    <p className="text-sm text-gray-400 mt-3">File PDF belum diunggah.</p>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </section>

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, BookOpen, Video, Star, FileText } from 'lucide-react';
-import { useTeachingProducts, useTeachingVideos } from '@/hooks/useData';
+import { ArrowRight, BookOpen, Video, Star, FileText, Users } from 'lucide-react';
+import { useTeachingProducts, useTeachingVideos, useStudentWorks } from '@/hooks/useData';
 import EmptyState from '@/components/EmptyState';
 
 const cycles = [
@@ -13,11 +13,13 @@ const cycles = [
 export default function ProdukPraktikMengajar() {
   const { products } = useTeachingProducts();
   const { videos } = useTeachingVideos();
+  const { works } = useStudentWorks();
 
   const getCounts = (cycle: number) => {
     const p = products.filter((x) => x.cycle === cycle).length;
     const v = videos.filter((x) => x.cycle === cycle).length;
-    return { products: p, videos: v };
+    const w = works.filter((x) => x.cycle === cycle).length;
+    return { products: p, videos: v, works: w };
   };
 
   return (
@@ -33,9 +35,10 @@ export default function ProdukPraktikMengajar() {
       <div className="grid sm:grid-cols-2 gap-6">
         {cycles.map((cycle) => {
           const counts = getCounts(cycle.num);
-          const hasContent = counts.products > 0 || counts.videos > 0;
+          const hasContent = counts.products > 0 || counts.videos > 0 || counts.works > 0;
           const selectedProduct = products.find((p) => p.cycle === cycle.num && p.is_selected);
           const selectedVideo = videos.find((v) => v.cycle === cycle.num && v.is_selected);
+          const firstWork = works.find((w) => w.cycle === cycle.num);
 
           return (
             <Link
@@ -49,7 +52,7 @@ export default function ProdukPraktikMengajar() {
                     {cycle.label}
                   </h2>
                   <p className="text-sm text-gray-500 mt-1">
-                    {counts.products} rancangan &middot; {counts.videos} video
+                    {counts.products} rancangan &middot; {counts.videos} video &middot; {counts.works} hasil peserta didik
                   </p>
                 </div>
                 <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-accent group-hover:translate-x-1 transition-all" />
@@ -74,7 +77,13 @@ export default function ProdukPraktikMengajar() {
                       <span className="font-medium text-gray-700">{selectedVideo.title || 'Video praktik mengajar'}</span>
                     </div>
                   )}
-                  {!selectedProduct && !selectedVideo && (
+                  {firstWork && (
+                    <div className="flex items-start gap-2 text-sm">
+                      <Users className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                      <span className="font-medium text-gray-700">{firstWork.title || 'Hasil pekerjaan peserta didik'}</span>
+                    </div>
+                  )}
+                  {!selectedProduct && !selectedVideo && !firstWork && (
                     <p className="text-sm text-gray-400">Belum ada produk pilihan yang ditandai.</p>
                   )}
                 </div>

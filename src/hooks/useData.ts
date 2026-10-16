@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { supabase, type Profile, type TeachingProduct, type TeachingVideo, type Analysis, type Documentation, type Appendix, type AnalysisType } from '@/lib/supabase';
+import { supabase, type Profile, type TeachingProduct, type TeachingVideo, type Analysis, type Documentation, type Appendix, type StudentWork, type AnalysisType } from '@/lib/supabase';
 
 export function useProfile() {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -85,6 +85,24 @@ export function useDocumentation() {
   useEffect(() => { fetch(); }, [fetch]);
 
   return { docs, loading, refetch: fetch };
+}
+
+export function useStudentWorks(cycle?: number) {
+  const [works, setWorks] = useState<StudentWork[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetch = useCallback(async () => {
+    setLoading(true);
+    let query = supabase.from('student_works').select('*').order('cycle').order('sort_order');
+    if (cycle !== undefined) query = query.eq('cycle', cycle);
+    const { data } = await query;
+    setWorks(data || []);
+    setLoading(false);
+  }, [cycle]);
+
+  useEffect(() => { fetch(); }, [fetch]);
+
+  return { works, loading, refetch: fetch };
 }
 
 export function useAppendices() {
