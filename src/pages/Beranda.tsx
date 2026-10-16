@@ -6,6 +6,7 @@ import {
   BookOpen,
   FileText,
   Camera,
+  Paperclip,
   ArrowRight,
   User,
 } from 'lucide-react';
@@ -172,10 +173,10 @@ export default function Beranda() {
             Ringkasan Isi E-Portofolio
           </h2>
           <p className="text-gray-600 text-center mb-10 max-w-2xl mx-auto">
-            Tiga bagian utama yang mendokumentasikan seluruh kegiatan Praktik Pengalaman Lapangan Mandiri.
+            Empat bagian utama yang mendokumentasikan seluruh kegiatan Praktik Pengalaman Lapangan Mandiri.
           </p>
 
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             <Link
               to="/produk"
               className="group bg-white rounded-lg border border-gray-200 p-6 hover-lift hover:border-accent transition-all"
@@ -224,6 +225,24 @@ export default function Beranda() {
               </h3>
               <p className="text-sm text-gray-600">
                 Galeri foto dokumentasi kegiatan Praktik Pengalaman Lapangan Mandiri.
+              </p>
+              <span className="inline-flex items-center gap-1 text-sm text-accent mt-4 group-hover:gap-2 transition-all">
+                Lihat selengkapnya <ArrowRight className="w-4 h-4" />
+              </span>
+            </Link>
+
+            <Link
+              to="/lampiran"
+              className="group bg-white rounded-lg border border-gray-200 p-6 hover-lift hover:border-accent transition-all"
+            >
+              <div className="w-12 h-12 rounded-lg bg-blue-50 flex items-center justify-center mb-4">
+                <Paperclip className="w-6 h-6 text-accent" />
+              </div>
+              <h3 className="font-bold text-gray-900 mb-2 group-hover:text-accent transition-colors">
+                Lampiran 7 dan 8
+              </h3>
+              <p className="text-sm text-gray-600">
+                Dokumen penilaian praktik mengajar untuk setiap siklus PPL Mandiri.
               </p>
               <span className="inline-flex items-center gap-1 text-sm text-accent mt-4 group-hover:gap-2 transition-all">
                 Lihat selengkapnya <ArrowRight className="w-4 h-4" />
