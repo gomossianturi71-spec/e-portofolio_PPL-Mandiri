@@ -198,7 +198,7 @@ export default function PdfViewer({ fileUrl, fileName, onBack, backLabel = 'Kemb
 
   return (
     <div className={fullscreen ? 'fixed inset-0 z-[100] bg-gray-900 flex flex-col' : ''}>
-      <div className={`flex flex-col ${fullscreen ? 'flex-1' : 'bg-white border border-gray-200 rounded-lg overflow-hidden'}`}>
+      <div className={`flex flex-col ${fullscreen ? 'flex-1' : 'bg-white border border-gray-200 rounded-lg overflow-hidden h-[75vh]'}`}>
         {/* Toolbar */}
         <div className={toolbarClass}>
           <div className="flex items-center gap-2 min-w-0">
