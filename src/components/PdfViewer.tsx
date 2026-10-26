@@ -33,7 +33,7 @@ export default function PdfViewer({ fileUrl, fileName, onBack, backLabel = 'Kemb
 
   const [numPages, setNumPages] = useState(0);
   const [scale, setScale] = useState(1.2);
-  const [fitMode, setFitMode] = useState<FitMode>('width');
+  const [fitMode, setFitMode] = useState<FitMode>('page');
   const [fullscreen, setFullscreen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
