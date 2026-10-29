@@ -1,7 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Menggunakan environment variable jika ada, atau fallback langsung ke kunci Supabase Anda
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://ljmafgmvpmheqttvdrsg.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxqbWFmZ212cG1oZXF0dHZkcnNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE1NDUyODUsImV4cCI6MjEwNzEyMTI4NX0.IccuNh98VHLSkoCsb3iXOSMiYG8tXArM0xkgM1DJBTA';
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
@@ -112,6 +113,7 @@ export type Appendix = {
   file_path: string;
   file_name: string;
   is_published: boolean;
+  sort_order: number;
   created_at: string;
   updated_at: string;
 };
