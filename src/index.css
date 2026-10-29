@@ -83,6 +83,7 @@
       transform: translateX(100%);
     }
     to {
+      opacity: 1;
       transform: translateX(0);
     }
   }
@@ -105,4 +106,23 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+
+/* Fix PDF Viewer Canvas Scaling */
+.react-pdf__Page,
+.react-pdf__Page__canvas,
+.react-pdf__Page__textContent,
+canvas {
+  max-width: 100% !important;
+  height: auto !important;
+  object-fit: contain !important;
+  margin: 0 auto !important;
+}
+
+.pdf-viewer-container {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  display: flex;
+  justify-content: center;
 }
